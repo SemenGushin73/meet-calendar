@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: meetcalendar-postgres
+    environment:
+      POSTGRES_DB: meetcalendar
+      POSTGRES_USER: meet
+      POSTGRES_PASSWORD: meet
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
