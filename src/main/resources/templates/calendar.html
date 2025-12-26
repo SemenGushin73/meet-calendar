@@ -44,20 +44,42 @@
         <div>
             <h1 class="h3 page-title mb-1">Мой календарь</h1>
             <div class="muted">
-                Неделя: <span th:text="${#temporals.format(day, 'dd.MM.yyyy')}">01.01.2025</span>
+                Неделя:
+                <span th:text="${#temporals.format(anyDayWeek, 'dd.MM.yyyy')}">
+                    01.01.2025
+                </span>
             </div>
         </div>
 
-        <a class="btn btn-primary" href="#createBooking">+ Забронировать</a>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm"
+               th:href="@{/calendar(week=${#temporals.format(prevWeek,'yyyy-MM-dd')})}">
+                ← Предыдущая
+            </a>
+
+            <a class="btn btn-outline-secondary btn-sm"
+               th:href="@{/calendar(week=${#temporals.format(nextWeek,'yyyy-MM-dd')})}">
+                Следующая →
+            </a>
+
+            <a class="btn btn-primary btn-sm" href="#createBooking">
+                + Забронировать
+            </a>
+        </div>
     </div>
 
-    <div th:if="${param.error}" class="alert alert-danger">Ошибка: <span th:text="${param.error}"></span></div>
-    <div th:if="${param.ok}" class="alert alert-success">Готово: <span th:text="${param.ok}"></span></div>
+    <div th:if="${param.error}" class="alert alert-danger">
+        Ошибка: <span th:text="${param.error}"></span>
+    </div>
+    <div th:if="${param.ok}" class="alert alert-success">
+        Готово: <span th:text="${param.ok}"></span>
+    </div>
 
     <div class="card card-shadow border-0">
         <div class="card-header bg-white border-0 d-flex align-items-center justify-content-between">
             <div class="fw-semibold">Бронирования</div>
-            <span class="badge text-bg-secondary" th:text="${#lists.size(bookings)}">0</span>
+            <span class="badge text-bg-secondary"
+                  th:text="${#lists.size(bookings)}">0</span>
         </div>
 
         <div class="card-body">
@@ -74,27 +96,47 @@
                         <th>Тема</th>
                         <th>Начало</th>
                         <th>Конец</th>
+                        <th>Статус</th>
                         <th class="text-end">Действия</th>
                     </tr>
                     </thead>
 
                     <tbody>
                     <tr th:each="b : ${bookings}">
-                        <td class="fw-semibold" th:text="${b.room != null ? b.room.name : '—'}">Room A</td>
+                        <td class="fw-semibold" th:text="${b.roomName}">Room A</td>
                         <td th:text="${b.title}">Daily sync</td>
 
                         <td>
-              <span class="badge text-bg-light badge-time"
-                    th:text="${#temporals.format(b.startAt, 'dd.MM HH:mm')}">25.12 10:00</span>
+                            <span class="badge text-bg-light badge-time"
+                                  th:text="${#temporals.format(b.startAt, 'dd.MM HH:mm')}">
+                                25.12 10:00
+                            </span>
                         </td>
+
                         <td>
-              <span class="badge text-bg-light badge-time"
-                    th:text="${#temporals.format(b.endAt, 'dd.MM HH:mm')}">25.12 10:30</span>
+                            <span class="badge text-bg-light badge-time"
+                                  th:text="${#temporals.format(b.endAt, 'dd.MM HH:mm')}">
+                                25.12 10:30
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="badge"
+                                  th:classappend="
+                                    ${b.status == 'ACTIVE'} ? ' text-bg-success' :
+                                    (${b.status == 'UPCOMING'} ? ' text-bg-primary' : ' text-bg-secondary')"
+                                  th:text="${b.status}">
+                                ACTIVE
+                            </span>
                         </td>
 
                         <td class="text-end">
-                            <form th:action="@{/bookings/{id}/cancel(id=${b.id})}" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                            <form th:if="${b.canCancel}"
+                                  th:action="@{/bookings/{id}/cancel(id=${b.bookingId})}"
+                                  method="post"
+                                  class="d-inline">
+                                <button type="submit"
+                                        class="btn btn-outline-danger btn-sm">
                                     Отменить
                                 </button>
                             </form>
@@ -118,28 +160,34 @@
 
                 <div class="col-md-3">
                     <label class="form-label">Room ID</label>
-                    <input name="roomId" type="number" class="form-control" placeholder="Напр. 1" required>
+                    <input name="roomId" type="number" class="form-control"
+                           placeholder="Напр. 1" required>
                     <div class="form-text">Пока по ID</div>
                 </div>
 
                 <div class="col-md-5">
                     <label class="form-label">Тема</label>
-                    <input name="title" type="text" class="form-control" placeholder="Напр. Планирование" required
-                           maxlength="200">
+                    <input name="title" type="text" class="form-control"
+                           placeholder="Напр. Планирование"
+                           required maxlength="200">
                 </div>
 
                 <div class="col-md-2">
                     <label class="form-label">Start</label>
-                    <input name="startAt" type="datetime-local" class="form-control" required>
+                    <input name="startAt" type="datetime-local"
+                           class="form-control" required>
                 </div>
 
                 <div class="col-md-2">
                     <label class="form-label">End</label>
-                    <input name="endAt" type="datetime-local" class="form-control" required>
+                    <input name="endAt" type="datetime-local"
+                           class="form-control" required>
                 </div>
 
                 <div class="col-12 d-flex justify-content-end">
-                    <button type="submit" class="btn btn-success">Создать</button>
+                    <button type="submit" class="btn btn-success">
+                        Создать
+                    </button>
                 </div>
 
             </form>

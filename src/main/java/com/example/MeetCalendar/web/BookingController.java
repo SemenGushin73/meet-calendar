@@ -1,6 +1,6 @@
 package com.example.MeetCalendar.web;
 
-import com.example.MeetCalendar.dto.CreateBookingRequest;
+import com.example.MeetCalendar.dto.BookingRequestDTO;
 import com.example.MeetCalendar.service.BookingService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -21,7 +21,7 @@ public class BookingController {
     }
 
     @PostMapping("/bookings")
-    public String addBooking(@ModelAttribute CreateBookingRequest request, @AuthenticationPrincipal UserDetails user) {
+    public String addBooking(@ModelAttribute BookingRequestDTO request, @AuthenticationPrincipal UserDetails user) {
         String username = user.getUsername();
 
         bookingService.createBooking(username, request);

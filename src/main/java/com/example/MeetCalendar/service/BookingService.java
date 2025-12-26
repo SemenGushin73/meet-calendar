@@ -1,11 +1,13 @@
 package com.example.MeetCalendar.service;
 
-import com.example.MeetCalendar.dto.CreateBookingRequest;
+import com.example.MeetCalendar.dto.BookingCalendarDTO;
+import com.example.MeetCalendar.dto.BookingRequestDTO;
 import com.example.MeetCalendar.entity.Booking;
 import com.example.MeetCalendar.entity.Room;
 import com.example.MeetCalendar.entity.User;
 import com.example.MeetCalendar.exception.BookingOverlapException;
 import com.example.MeetCalendar.exception.BookingValidationException;
+import com.example.MeetCalendar.repository.BookingCalendarRow;
 import com.example.MeetCalendar.repository.BookingRepository;
 import com.example.MeetCalendar.repository.RoomRepository;
 import com.example.MeetCalendar.repository.UserRepository;
@@ -18,6 +20,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -49,7 +52,7 @@ public class BookingService {
     /**
      * Method for creating a reservation.
      */
-    public Booking createBooking(String username, CreateBookingRequest request) {
+    public Booking createBooking(String username, BookingRequestDTO request) {
 
         User user = userRepository.findByUsername(username).orElseThrow(() ->
                 new BookingValidationException("Username not found: " + username));
@@ -63,6 +66,9 @@ public class BookingService {
         ZoneId zone = ZoneId.systemDefault(); // или ZoneOffset.UTC
         OffsetDateTime start = startLdt.atZone(zone).toOffsetDateTime();
         OffsetDateTime end = endLdt.atZone(zone).toOffsetDateTime();
+        if (start.isBefore(OffsetDateTime.now())) {
+            throw new BookingOverlapException("Start date is before end date");
+        }
         validateTime(start, end);
 
         Booking booking = new Booking();
@@ -204,5 +210,45 @@ public class BookingService {
         List<Booking> bookings = bookingRepository.findByUserIdAndStartAtLessThanAndEndAtGreaterThan(user.getId(), w.getEnd(), w.getStart());
         bookings.sort(Comparator.comparing(Booking::getStartAt));
         return bookings;
+    }
+
+    public List<BookingCalendarDTO> getBookingCalendarForUser(String username, OffsetDateTime anyDayWeek) {
+        if (anyDayWeek == null) {
+            throw new BookingValidationException("anyDayWeek cannot be null");
+        }
+        if (username == null) {
+            throw new BookingValidationException("username cannot be null");
+        }
+        if (username.isBlank()) {
+            throw new BookingValidationException("username cannot be blank");
+        }
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new BookingValidationException("User not found: " + username));
+        Long userId = user.getId();
+        WeekWindow w = weekWindow(anyDayWeek);
+        OffsetDateTime weekStart = w.getStart();
+        OffsetDateTime weekEnd = w.getEnd();
+        List<BookingCalendarRow> rows = bookingRepository.findCalendarRowsForUserWeek(userId, weekStart, weekEnd);
+        List<BookingCalendarDTO> dtos = new ArrayList<>();
+        OffsetDateTime now = OffsetDateTime.now();
+        boolean isAdmin = user.getRoles().stream().anyMatch(r -> "ADMIN".equals(r.getName()));
+        for (BookingCalendarRow row : rows) {
+            BookingCalendarDTO dto = new BookingCalendarDTO();
+            dto.setBookingId(row.getBookingId());
+            dto.setTitle(row.getTitle());
+            dto.setRoomName(row.getRoomName());
+            dto.setStartAt(row.getStartAt());
+            dto.setEndAt(row.getEndAt());
+            boolean isOwner = row.getOwnerId().equals(userId);
+            dto.setCanCancel(isOwner || isAdmin);
+            if (row.getEndAt().isBefore(now)) {
+                dto.setStatus("PAST");
+            } else if (row.getStartAt().isAfter(now)) {
+                dto.setStatus("UPCOMING");
+            } else {
+                dto.setStatus("ACTIVE");
+            }
+            dtos.add(dto);
+        }
+        return dtos;
     }
 }
