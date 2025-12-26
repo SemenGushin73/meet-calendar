@@ -1,19 +1,33 @@
 package com.example.MeetCalendar.service;
 
+import com.example.MeetCalendar.dto.CreateBookingRequest;
 import com.example.MeetCalendar.entity.Booking;
 import com.example.MeetCalendar.entity.Room;
 import com.example.MeetCalendar.entity.User;
+import com.example.MeetCalendar.exception.BookingOverlapException;
 import com.example.MeetCalendar.exception.BookingValidationException;
 import com.example.MeetCalendar.repository.BookingRepository;
 import com.example.MeetCalendar.repository.RoomRepository;
 import com.example.MeetCalendar.repository.UserRepository;
+import com.example.MeetCalendar.utils.WeekWindow;
 import jakarta.transaction.Transactional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.util.Comparator;
+import java.util.List;
 
+import static java.time.DayOfWeek.MONDAY;
+import static java.time.temporal.ChronoUnit.DAYS;
+import static java.time.temporal.TemporalAdjusters.previousOrSame;
+
+/**
+ * Service class for booking.
+ */
 @Service
 @Transactional
 public class BookingService {
@@ -32,16 +46,23 @@ public class BookingService {
         this.roomRepository = roomRepository;
     }
 
+    /**
+     * Method for creating a reservation.
+     */
     public Booking createBooking(String username, CreateBookingRequest request) {
 
         User user = userRepository.findByUsername(username).orElseThrow(() ->
-                new BookingValidationException("Username not found" + username));
+                new BookingValidationException("Username not found: " + username));
 
         Room room = roomRepository.findById(request.getRoomId()).orElseThrow(() ->
-                new BookingValidationException("Room not found" + request.getRoomId()));
+                new BookingValidationException("Room not found: " + request.getRoomId()));
 
-        OffsetDateTime start = request.getStartAt();
-        OffsetDateTime end = request.getEndAt();
+        LocalDateTime startLdt = request.getStartAt();
+        LocalDateTime endLdt = request.getEndAt();
+
+        ZoneId zone = ZoneId.systemDefault(); // или ZoneOffset.UTC
+        OffsetDateTime start = startLdt.atZone(zone).toOffsetDateTime();
+        OffsetDateTime end = endLdt.atZone(zone).toOffsetDateTime();
         validateTime(start, end);
 
         Booking booking = new Booking();
@@ -55,12 +76,15 @@ public class BookingService {
             return bookingRepository.save(booking);
         } catch (DataIntegrityViolationException e) {
             if (isOverlap(e)) {
-                throw new BookingValidationException("Room is already booked for this time");
+                throw new BookingOverlapException("Room is already booked for this time");
             }
             throw e;
         }
     }
 
+    /**
+     * Method for filtering titles.
+     */
     private String normalizeTitle(String title) {
 
         if (title == null) {
@@ -80,7 +104,10 @@ public class BookingService {
         return normalizedTitle;
     }
 
-    private boolean isOverlap(DataIntegrityViolationException e) {
+    /**
+     * Method for indicating whether a room is booked or not.
+     */
+    private boolean isOverlap(Throwable e) {
         Throwable cur = e;
         while (cur != null) {
             String msg = cur.getMessage();
@@ -92,13 +119,16 @@ public class BookingService {
         return false;
     }
 
+    /**
+     * Method for filtering time.
+     */
     private void validateTime(OffsetDateTime start, OffsetDateTime end) {
 
-        if (start ==  null || end == null) {
-            throw new  BookingValidationException("Start and end time cannot be null");
+        if (start == null || end == null) {
+            throw new BookingValidationException("Start and end time cannot be null");
         }
         if (!end.isAfter(start)) {
-            throw new  BookingValidationException("End time must be after start time");
+            throw new BookingValidationException("End time must be after start time");
         }
 
         Duration duration = Duration.between(start, end);
@@ -108,4 +138,71 @@ public class BookingService {
         }
     }
 
+    /**
+     * Method for indicating the ability to delete a reservation.
+     */
+    private boolean canCancel(User user, Booking booking) {
+        boolean isOwner = user.getId().equals(booking.getUser().getId());
+        boolean isAdmin = user.getRoles().stream().anyMatch(r -> "ADMIN".equals(r.getName()));
+        return isOwner || isAdmin;
+    }
+
+    /**
+     * Method to delete a booking.
+     */
+    public void cancelBooking(Long bookingId, String username) {
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new BookingValidationException("Booking not found: " + bookingId));
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new BookingValidationException("User not found: " + username));
+        if (!canCancel(user, booking)) {
+            throw new BookingValidationException("Access denied");
+        }
+        if (booking.getEndAt().isBefore(OffsetDateTime.now())) {
+            throw new BookingValidationException("Can not cancel booking after end time");
+        }
+        bookingRepository.deleteById(bookingId);
+    }
+
+    /**
+     * Method for calculating the current week.
+     */
+    private WeekWindow weekWindow(OffsetDateTime anyDayInWeek) {
+        if (anyDayInWeek == null) {
+            throw new BookingValidationException("anyDayInWeek cannot be null");
+        }
+        OffsetDateTime start = anyDayInWeek.with(previousOrSame(MONDAY)).truncatedTo(DAYS);
+        OffsetDateTime end = start.plusDays(7);
+        return new WeekWindow(start, end);
+
+    }
+
+    /**
+     * Method for displaying bookings for the current week.
+     */
+    public List<Booking> getRoomBookingsForWeek(Long roomId, OffsetDateTime anyDayWeek) {
+        if (anyDayWeek == null) {
+            throw new BookingValidationException("anyDayWeek cannot be null");
+        }
+        if (roomId == null) {
+            throw new BookingValidationException("roomId cannot be null");
+        }
+        roomRepository.findById(roomId).orElseThrow(() -> new BookingValidationException("Room not found: " + roomId));
+        WeekWindow w = weekWindow(anyDayWeek);
+        List<Booking> bookings = bookingRepository.findByRoomIdAndStartAtLessThanAndEndAtGreaterThan(roomId, w.getEnd(), w.getStart());
+        bookings.sort(Comparator.comparing(Booking::getStartAt));
+        return bookings;
+    }
+
+    public List<Booking> getMyBookingsForWeek(String username, OffsetDateTime anyDayWeek) {
+        if (username == null) {
+            throw new BookingValidationException("username cannot be null");
+        }
+        if (username.isBlank()) {
+            throw new BookingValidationException("username cannot be blank");
+        }
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new BookingValidationException("User not found: " + username));
+        WeekWindow w = weekWindow(anyDayWeek);
+        List<Booking> bookings = bookingRepository.findByUserIdAndStartAtLessThanAndEndAtGreaterThan(user.getId(), w.getEnd(), w.getStart());
+        bookings.sort(Comparator.comparing(Booking::getStartAt));
+        return bookings;
+    }
 }
