@@ -1,4 +1,4 @@
-package com.example.MeetCalendar.security;
+package com.example.MeetCalendar.service;
 
 import com.example.MeetCalendar.entity.User;
 import com.example.MeetCalendar.repository.UserRepository;

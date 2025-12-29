@@ -1,4 +1,4 @@
-package com.example.MeetCalendar.web;
+package com.example.MeetCalendar.controller;
 
 import com.example.MeetCalendar.dto.BookingRequestDTO;
 import com.example.MeetCalendar.service.BookingService;
