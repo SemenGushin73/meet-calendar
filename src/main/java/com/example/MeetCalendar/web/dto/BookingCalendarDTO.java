@@ -1,4 +1,4 @@
-package com.example.MeetCalendar.dto;
+package com.example.MeetCalendar.web.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -6,7 +6,7 @@ import lombok.Setter;
 import java.time.OffsetDateTime;
 
 /**
- * DTO to send to calendar.
+ * Calendar booking DTO used for rendering calendar UI.
  */
 @Getter
 @Setter
@@ -18,4 +18,7 @@ public class BookingCalendarDTO {
     private OffsetDateTime endAt;
     private boolean canCancel;
     private String status;
+    private Integer topPx;
+    private Integer heightPx;
+    private String dayKey;
 }
