@@ -2,7 +2,7 @@ create table if not exists rooms
 (
     id   bigserial primary key,
     name varchar(100) not null unique
-    );
+);
 
 insert into rooms (name)
 values ('Балкон 3 этаж'),

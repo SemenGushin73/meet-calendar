@@ -1,11 +1,11 @@
-package com.example.MeetCalendar.utils;
+package com.example.MeetCalendar.web.model;
 
 import lombok.Getter;
 
 import java.time.OffsetDateTime;
 
 /**
- * Model for a week.
+ * Week time range [start, end).
  */
 @Getter
 public class WeekWindow {
@@ -16,4 +16,5 @@ public class WeekWindow {
         this.start = start;
         this.end = end;
     }
+
 }

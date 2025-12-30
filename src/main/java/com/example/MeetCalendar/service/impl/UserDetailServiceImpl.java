@@ -1,4 +1,4 @@
-package com.example.MeetCalendar.service;
+package com.example.MeetCalendar.service.impl;
 
 import com.example.MeetCalendar.entity.User;
 import com.example.MeetCalendar.repository.UserRepository;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class UserDetailService implements UserDetailsService {
+public class UserDetailServiceImpl implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override

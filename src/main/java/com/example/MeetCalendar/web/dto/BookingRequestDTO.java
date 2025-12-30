@@ -1,4 +1,4 @@
-package com.example.MeetCalendar.dto;
+package com.example.MeetCalendar.web.dto;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -6,7 +6,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 /**
- * DTO for request booking.
+ * Booking create request DTO (MVC form / REST payload).
  */
 @Getter
 @Setter
