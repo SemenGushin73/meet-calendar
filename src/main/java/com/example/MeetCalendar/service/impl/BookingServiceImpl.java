@@ -14,6 +14,7 @@ import com.example.MeetCalendar.repository.RoomRepository;
 import com.example.MeetCalendar.repository.UserRepository;
 import com.example.MeetCalendar.web.model.WeekWindow;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -26,13 +27,16 @@ import static java.time.temporal.ChronoUnit.DAYS;
 import static java.time.temporal.TemporalAdjusters.previousOrSame;
 
 
+@Slf4j
 @Service
 @Transactional
 public class BookingServiceImpl implements BookingService {
-    private final static Duration MIN = Duration.ofMinutes(30);
-    private final static Duration MAX = Duration.ofHours(24);
+    private static final Duration MIN = Duration.ofMinutes(30);
+    private static final Duration MAX = Duration.ofHours(24);
     private static final String OVERLAP_CONSTRAINT = "booking_no_overlap";
-    static final ZoneId APP_ZONE = ZoneId.systemDefault();
+    private static final ZoneId APP_ZONE = ZoneId.systemDefault();
+    private static final int TITLE_MAX_LENGTH = 200;
+    private static final String ROLE_ADMIN = "ADMIN";
 
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
@@ -50,6 +54,14 @@ public class BookingServiceImpl implements BookingService {
             throw new BookingValidationException();
         }
 
+        if (username == null || username.isBlank()) {
+            throw new BookingValidationException();
+        }
+
+        if (request.getRoomId() == null || request.getStartAt() == null || request.getEndAt() == null) {
+            throw new BookingValidationException();
+        }
+
         User user = userRepository.findByUsername(username).orElseThrow(BookingNotFoundException::new);
 
         Room room = roomRepository.findById(request.getRoomId()).orElseThrow(BookingNotFoundException::new);
@@ -59,7 +71,7 @@ public class BookingServiceImpl implements BookingService {
 
         OffsetDateTime start = startLdt.atZone(APP_ZONE).toOffsetDateTime();
         OffsetDateTime end = endLdt.atZone(APP_ZONE).toOffsetDateTime();
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(APP_ZONE);
         validateTime(start, end);
         if (start.isBefore(now)) {
             throw new BookingValidationException();
@@ -70,17 +82,20 @@ public class BookingServiceImpl implements BookingService {
         booking.setRoom(room);
         booking.setStartAt(start);
         booking.setEndAt(end);
+        log.info("Create booking request: user={}, roomId={}, start={}, end={}", username, request.getRoomId(), start, end);
         booking.setTitle(normalizeTitle(request.getTitle()));
 
         try {
-            bookingRepository.save(booking);
+            Booking saved = bookingRepository.save(booking);
+            log.info("Booking created: id={}, user={}, roomId={}, start={}, end={}", saved.getId(), username, request.getRoomId(), start, end);
+            return saved;
         } catch (DataIntegrityViolationException e) {
             if (isOverlap(e)) {
+                log.warn("Booking overlap: user={}, roomId={}, start={}, end={}", username, request.getRoomId(), start, end);
                 throw new BookingOverlapException();
             }
             throw e;
         }
-        return booking;
     }
 
     private String normalizeTitle(String title) {
@@ -95,7 +110,7 @@ public class BookingServiceImpl implements BookingService {
             throw new BookingValidationException();
         }
 
-        if (normalizedTitle.length() > 200) {
+        if (normalizedTitle.length() > TITLE_MAX_LENGTH) {
             throw new BookingValidationException();
         }
 
@@ -131,15 +146,19 @@ public class BookingServiceImpl implements BookingService {
     }
 
     public void cancelBooking(Long bookingId, String username) {
+        if (bookingId == null || username == null || username.isBlank()) {
+            throw new BookingValidationException();
+        }
         Booking booking = bookingRepository.findById(bookingId).orElseThrow(BookingNotFoundException::new);
         User user = userRepository.findByUsername(username).orElseThrow(BookingNotFoundException::new);
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(APP_ZONE);
         if (!canCancel(user, booking)) {
             throw new BookingAccessDeniedException();
         }
         if (booking.getEndAt().isBefore(now)) {
             throw new BookingValidationException();
         }
+        log.info("Cancel booking request: user={}, bookingId={}", username, bookingId);
         bookingRepository.deleteById(bookingId);
     }
 
@@ -183,7 +202,7 @@ public class BookingServiceImpl implements BookingService {
 
     private boolean canCancel(User user, Booking booking) {
         boolean isOwner = user.getId().equals(booking.getUser().getId());
-        boolean isAdmin = user.getRoles().stream().anyMatch(r -> "ADMIN".equals(r.getName()));
+        boolean isAdmin = user.getRoles().stream().anyMatch(r -> ROLE_ADMIN.equals(r.getName()));
         return isOwner || isAdmin;
     }
 

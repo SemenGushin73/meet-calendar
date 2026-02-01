@@ -3,6 +3,7 @@ package com.example.MeetCalendar.mapper;
 import com.example.MeetCalendar.repository.BookingCalendarRow;
 import com.example.MeetCalendar.web.dto.BookingCalendarDTO;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 /**
@@ -12,11 +13,17 @@ import org.mapstruct.ReportingPolicy;
  */
 @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.ERROR)
 public interface BookingCalendarMapper {
+
     /**
      * Converts projection row to DTO.
      *
      * @param row projection returned from repository query
      * @return mapped DTO
      */
+    @Mapping(target = "canCancel", ignore = true)
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "topPx", ignore = true)
+    @Mapping(target = "heightPx", ignore = true)
+    @Mapping(target = "dayKey", ignore = true)
     BookingCalendarDTO toDto(BookingCalendarRow row);
 }

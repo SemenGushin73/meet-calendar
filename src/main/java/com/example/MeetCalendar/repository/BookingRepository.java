@@ -29,7 +29,7 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
                 r.name      as roomName,
                 b.startAt   as startAt,
                 b.endAt     as endAt,
-                b.user.id as ownerId
+                b.user.id   as ownerId
             from Booking b
                 join b.room r
             where

@@ -5,7 +5,7 @@ import lombok.Getter;
 import java.time.OffsetDateTime;
 
 /**
- * Week time range [start, end).
+ * Represents start and end of a calendar week.
  */
 @Getter
 public class WeekWindow {
@@ -16,5 +16,4 @@ public class WeekWindow {
         this.start = start;
         this.end = end;
     }
-
 }
