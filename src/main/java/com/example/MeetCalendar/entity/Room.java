@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * Entity representing a meeting room available for booking.
+ */
 @Entity
 @Getter
 @Setter
@@ -14,6 +17,6 @@ public class Room {
     @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "name", nullable = false, unique = true)
+    @Column(name = "name", unique = true)
     private String name;
 }

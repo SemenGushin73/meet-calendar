@@ -7,6 +7,9 @@ import lombok.Setter;
 import java.util.Set;
 
 
+/**
+ * Entity representing a security role assigned to users.
+ */
 @Entity
 @Table(name = "roles")
 @Getter
