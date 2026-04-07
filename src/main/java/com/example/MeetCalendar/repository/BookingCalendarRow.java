@@ -2,6 +2,9 @@ package com.example.MeetCalendar.repository;
 
 import java.time.OffsetDateTime;
 
+/**
+ * Projection for calendar booking rows returned by repository queries.
+ */
 public interface BookingCalendarRow {
     Long getBookingId();
 

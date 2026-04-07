@@ -8,6 +8,9 @@ import java.time.OffsetDateTime;
 import java.util.Set;
 
 
+/**
+ * Entity representing an application user with authentication and authorization data.
+ */
 @Entity
 @Getter
 @Setter
@@ -17,10 +20,10 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "username")
+    @Column(name = "username", nullable = false, unique = true)
     private String username;
 
-    @Column(name = "email")
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
 
     @Column(name = "password_hash")

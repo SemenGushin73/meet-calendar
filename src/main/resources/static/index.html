@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>MeetCalendar</title>
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand">MeetCalendar</div>
+
+    <div class="nav">
+        <button id="prevWeekBtn" class="btn" type="button">←</button>
+        <button id="todayBtn" class="btn" type="button">Today</button>
+        <button id="nextWeekBtn" class="btn" type="button">→</button>
+        <div id="weekLabel" class="week-label"></div>
+    </div>
+
+    <div class="userbox">
+        <div id="avatar" class="avatar" title="Avatar"></div>
+        <div class="user-meta">
+            <div id="username" class="username muted">—</div>
+            <button id="logoutBtn" class="link" type="button">Logout</button>
+        </div>
+    </div>
+</header>
+
+<main class="layout">
+    <section class="sidebar">
+        <h3>Create booking</h3>
+
+        <label class="field">
+            <span>Room</span>
+            <select id="roomSelect" class="select">
+                <option value="">Loading rooms…</option>
+            </select>
+            <div class="hint">If rooms API is not ready, enter Room ID manually below.</div>
+        </label>
+
+        <label class="field">
+            <span>Room ID (fallback)</span>
+            <input id="roomIdInput" type="number" min="1" value="1"/>
+        </label>
+
+        <label class="field">
+            <span>Title</span>
+            <input id="titleInput" maxlength="60" placeholder="e.g. Daily sync"/>
+        </label>
+
+        <div class="hint">
+            Click on the calendar grid to prefill start/end time.
+        </div>
+
+        <div id="globalError" class="error hidden"></div>
+    </section>
+
+    <section class="content">
+        <div id="calendar" class="calendar"></div>
+    </section>
+</main>
+
+<div id="createModal" class="modal hidden">
+    <div class="modal-card">
+        <div class="modal-title">New booking</div>
+
+        <label class="field">
+            <span>Start</span>
+            <input id="startInput" type="datetime-local">
+        </label>
+
+        <label class="field">
+            <span>End</span>
+            <input id="endInput" type="datetime-local">
+        </label>
+
+        <div id="createError" class="error hidden"></div>
+
+        <div class="modal-actions">
+            <button id="createCancelBtn" class="btn" type="button">Cancel</button>
+            <button id="createSaveBtn" class="btn primary" type="button">Book</button>
+        </div>
+    </div>
+</div>
+
+<div id="eventModal" class="modal hidden">
+    <div class="modal-card">
+        <div class="modal-title">Booking</div>
+        <div id="eventInfo" class="event-info"></div>
+        <div class="modal-actions">
+            <button id="eventCloseBtn" class="btn" type="button">Close</button>
+        </div>
+    </div>
+</div>
+
+<div id="loginOverlay" class="login hidden" aria-hidden="true">
+    <div class="login-card">
+        <div class="modal-title">Sign in</div>
+
+        <label class="field">
+            <span>Username</span>
+            <input id="loginUsername" autocomplete="username">
+        </label>
+
+        <label class="field">
+            <span>Password</span>
+            <input id="loginPassword" type="password" autocomplete="current-password">
+        </label>
+
+        <div id="loginError" class="error hidden"></div>
+
+        <button id="loginBtn" class="btn primary w100" type="button">Login</button>
+        <div class="hint" style="margin-top:10px">
+            Standard Spring Security form login (/login).
+        </div>
+    </div>
+</div>
+
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>
